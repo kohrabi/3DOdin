@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "command": "",
+    "args": [],
+    "tasks": [
+        // {
+        //     "label": "mkdir",
+        //     "type": "shell",
+        //     "command": "cmd",
+        //     "args": [
+        //         "/C",
+        //         "if not exist .\\build mkdir .\\build"
+        //     ]
+        // },
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "debugBuild.bat",
+            "group": "build"
+        },
+        {
+            "label": "Debug Build",
+            "dependsOn": [
+                "build"
+            ]
+        }
+    ]
+}
