@@ -2,6 +2,7 @@ package main
 
 import raylib "vendor:raylib"
 import ecs "libs/ecs"
+import trenchbroom "libs/trenchbroom"
 
 ecsRegistry : ecs.Registry;
 
@@ -26,12 +27,15 @@ camera : raylib.Camera3D = raylib.Camera3D {
     fovy = 45.0,
     projection = raylib.CameraProjection.PERSPECTIVE,
 }
+testMap : trenchbroom.TrenchbroomMap;
 
 init :: proc () {
     ecsRegistry = ecs.ecs_create();
     ecs.ecs_component_register(&ecsRegistry, ecs.Group(EntityGroup));
     ecs.ecs_component_register(&ecsRegistry, ecs.Tag(EntityTag));
     ecs.ecs_component_register(&ecsRegistry, ecs.Transform);
+
+    testMap, _ = trenchbroom.trenchbroom_load("content/maps/unnamed.map");
 
     raylib.DisableCursor()
 }
@@ -50,8 +54,30 @@ draw :: proc () {
 
     raylib.BeginMode3D(camera);
 
-        raylib.DrawCube(cubePosition, 2.0, 2.0, 2.0, raylib.RED);
-        raylib.DrawCubeWires(cubePosition, 2.0, 2.0, 2.0, raylib.MAROON);
+        // raylib.DrawCube(cubePosition, 2.0, 2.0, 2.0, raylib.RED);
+        // raylib.DrawCubeWires(cubePosition, 2.0, 2.0, 2.0, raylib.MAROON);
+
+
+        for entity in testMap.entities {
+            if (entity.brushes == nil || len(entity.brushes) == 0) {
+                continue;
+            }
+            i := 0;
+            for brush in entity.brushes {
+                if (brush.faces == nil || len(brush.faces) == 0) {
+                    continue;
+                }
+                for face in brush.faces {
+                    for poly in face.polys {
+                        for vertex in poly.vertices {
+                            test := vertex.position / 100;
+                            raylib.DrawSphere(test, 0.1 * cast(f32)i, raylib.GREEN);
+                            i += 1;
+                        }
+                    }
+                }
+            }
+        }
 
         raylib.DrawGrid(10, 1.0);
 
@@ -64,6 +90,7 @@ draw :: proc () {
     raylib.DrawText("- Mouse Wheel to Zoom in-out", 40, 40, 10, raylib.DARKGRAY);
     raylib.DrawText("- Mouse Wheel Pressed to Pan", 40, 60, 10, raylib.DARKGRAY);
     raylib.DrawText("- Z to zoom to (0, 0, 0)", 40, 80, 10, raylib.DARKGRAY);
+
 
 }
 
