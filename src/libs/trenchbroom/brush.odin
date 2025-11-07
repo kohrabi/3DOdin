@@ -104,8 +104,8 @@ brush_to_mesh :: proc (brush: Brush) -> raylib.Mesh {
                 triangleCount += 1;
                 append(&indices, 
                     verticesMap[poly.vertices[0]], 
-                    verticesMap[poly.vertices[i + 1]],
                     verticesMap[poly.vertices[i]], 
+                    verticesMap[poly.vertices[i + 1]],
                 );
             }
         }

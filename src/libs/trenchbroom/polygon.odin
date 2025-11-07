@@ -13,12 +13,12 @@ PolyClassification :: enum {
 @(private = "package")
 _Polygon :: struct {
     vertices: [dynamic]Vertex,
-    plane: ^Plane,
+    plane: Plane,
 }
 
 Polygon :: struct {
     vertices: []Vertex,
-    plane: ^Plane,
+    plane: Plane,
 }
 
 poly_to_public :: proc(poly: _Polygon) -> Polygon {

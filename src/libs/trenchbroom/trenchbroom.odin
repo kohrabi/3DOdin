@@ -36,11 +36,16 @@ trenchbroom_load :: proc(path: string) -> (TrenchbroomMap, bool) {
                 }
                 face.texture = textureDict[texturePath];
 
+                face.plane.normal *= TRENCHBROOM_AXIS;
                 for &poly in face.polys {
-                    poly.plane = &face.plane;
-                    polygon_sort_cw(&poly);
-
+                    // Has to do first because this will break because of something i dont know
                     polygon_calculate_uv(&poly, face.texture, face.u, face.v, face.scale);
+                
+                    poly.plane = face.plane;
+                    for &vertex in poly.vertices {
+                        vertex.position *= TRENCHBROOM_AXIS;
+                    }
+                    polygon_sort_cw(&poly);
                 }
             }
         }
@@ -50,23 +55,6 @@ trenchbroom_load :: proc(path: string) -> (TrenchbroomMap, bool) {
     // Is this fucking stupid?
     result := to_public(entitiesMap);
     clean_up(entitiesMap);
-
-    // This will reverse the axis
-    for entity in result.entities {
-        if (entity.brushes == nil) {
-            continue;
-        }
-        for brush in entity.brushes {
-            for &face in brush.faces {
-                face.plane.normal *= TRENCHBROOM_AXIS;
-                for poly in face.polys {
-                    for &vertex in poly.vertices {
-                        vertex.position *= TRENCHBROOM_AXIS;
-                    }
-                }
-            }
-        }
-    }
 
     return result, true;
 }

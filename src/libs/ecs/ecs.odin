@@ -2,13 +2,14 @@ package ecs
 
 import "core:crypto/_aes/ct64"
 import glm "core:math/linalg/glsl"
+import "core:mem"
 
 Entity :: distinct u32;
 
 System :: struct {
-    component : []typeid,
-    update: proc(ecs: ^Registry),
-    render: proc(ecs: ^Registry),
+    requiredComponents : []typeid,
+    update: proc(ecs: ^Registry, entity : Entity),
+    draw: proc(ecs: ^Registry, entity : Entity),
 }
 
 ComponentStorage :: struct($T : typeid) {
@@ -59,6 +60,7 @@ ecs_entity_create :: proc(ecs: ^Registry) -> Entity {
     entity : Entity = ecs.next_entity_id;
     append(&ecs.entities, entity);
     ecs.next_entity_id += 1;
+
     return entity;
 }
 
@@ -71,13 +73,64 @@ ecs_entity_add_component :: proc(ecs: ^Registry, entity: Entity, component: $com
 }
 
 ecs_entity_get_component :: proc(ecs: ^Registry, entity: Entity, $compType: typeid) -> (compType, bool) {
+    component, ok := ecs_entity_get_component_reference(ecs, entity, compType);
+    if ok {
+        return component^, ok;
+    }
+    return {}, ok;
+}
+
+
+ecs_entity_get_component_reference :: proc(ecs: ^Registry, entity: Entity, $compType: typeid) -> (^compType, bool) {
     storage := ecs_component_get_storage(ecs, compType);
     if storage != nil {
         if entity in storage.components {
-            return storage.components[entity], true;
+            return &storage.components[entity], true;
         }
     }
-    return {}, false
+    return nil, false
+}
+
+@(private="file")
+_ecs_system_get_entities :: proc(ecs: ^Registry, system: System) -> []Entity {
+    
+    get_storage :: proc(ecs: ^Registry, compType : typeid) -> ^ComponentStorage(any) {
+        if compType in ecs.components {
+            return cast(^ComponentStorage(any))ecs.components[compType];
+        }
+        return nil;
+    }
+    
+    entities : [dynamic]Entity;
+    // If it doesn't require any elements return the full entities list.
+    // Not Recommended
+    if (system.requiredComponents == nil || len(system.requiredComponents) == 0) {
+        entities := make([dynamic]Entity, len(ecs.entities));
+        copy(entities[:], ecs.entities[:]);
+        return entities[:]; 
+    }
+
+    // Use first component entities as base 
+    storage := get_storage(ecs, system.requiredComponents[0]);
+    for entity, _ in storage.components {
+        append(&entities, entity);
+    }
+    for i in 1..<len(system.requiredComponents) {
+        storage = get_storage(ecs, system.requiredComponents[i]);
+        if (len(entities) == 0) {
+            break;
+        }
+        for j := 0; j < len(entities); {
+            if (entities[j] not_in storage.components) {
+                unordered_remove(&entities, j);   
+            }
+            else {
+                j += 1;
+            }
+        } 
+    }
+
+    return entities[:];
 }
 
 ecs_system_register :: proc(ecs: ^Registry, system: System) {
@@ -87,15 +140,23 @@ ecs_system_register :: proc(ecs: ^Registry, system: System) {
 ecs_system_run_updates :: proc(ecs: ^Registry) {
     for system in ecs.systems {
         if system.update != nil {
-            system.update(ecs);
+            entities := _ecs_system_get_entities(ecs, system);
+            for entity in entities {
+                system.update(ecs, entity);
+            }
+            delete(entities);
         }
     }
 }
 
 ecs_system_run_renders :: proc(ecs: ^Registry) {
     for system in ecs.systems {
-        if system.render != nil {
-            system.render(ecs);
+        if system.draw != nil {
+            entities := _ecs_system_get_entities(ecs, system);
+            for entity in entities {
+                system.draw(ecs, entity);
+            }
+            delete(entities);
         }
     }
 }
