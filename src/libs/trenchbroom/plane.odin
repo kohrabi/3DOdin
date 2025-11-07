@@ -14,6 +14,13 @@ PointClassification :: enum {
     OnPlane,
 }
 
+plane_create :: proc(a, b, c : raylib.Vector3) -> Plane {
+    plane : Plane;
+    plane.normal = raylib.Vector3CrossProduct(a - b, a - c);
+    plane.dist = -raylib.Vector3DotProduct(plane.normal, a);
+    return plane;
+}
+
 plane_distance_to_point :: proc(plane: Plane, point : raylib.Vector3) -> f32 {
     return raylib.Vector3DotProduct(plane.normal, point) + plane.dist;
 }

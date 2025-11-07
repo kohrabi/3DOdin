@@ -6,6 +6,8 @@ import "core:strings"
 import "core:strconv"
 import raylib "vendor:raylib"
 
+RAYLIB_UNIT :: 100
+
 trenchbroom_load :: proc(path: string) -> (TrenchbroomMap, bool) {
     // Placeholder for loading a TrenchBroom map file
     data, ok := os.read_entire_file(path);
@@ -17,9 +19,31 @@ trenchbroom_load :: proc(path: string) -> (TrenchbroomMap, bool) {
     mapData := string(data);
     entitiesMap := _trenchbroom_parse(mapData);
 
+    textureDict : map[cstring]raylib.Texture;
+    defer delete(textureDict);
     for entity in entitiesMap.entities {
         for &brush in entity.brushes {
-            generate_polys(&brush);
+            brush_generate_polys(&brush);
+
+            // Process Polygon
+            for &face in brush.faces {
+                texturePath := strings.unsafe_string_to_cstring("content/textures/wall.jpg");
+                if (face.texturePath == "") {
+                    continue;
+                }
+                if (texturePath not_in textureDict) {
+                    textureDict[texturePath] = raylib.LoadTexture(texturePath);
+                }
+                face.texture = textureDict[texturePath];
+
+                for &poly in face.polys {
+                    poly.plane = face.plane;
+
+                    polygon_sort_cw(&poly);
+
+                    polygon_calculate_uv(&poly, face.texture, face.u, face.v, face.scale);
+                }
+            }
         }
     }
 
@@ -32,20 +56,37 @@ trenchbroom_load :: proc(path: string) -> (TrenchbroomMap, bool) {
     return result, true;
 }
 
-trenchbroom_load_textures :: proc(src : TrenchbroomMap) {
-    for entity in src.entities {
-        for &face in entity.brushes {
-            // Load texture for each face
-            // texture := raylib.LoadTexture(strings.unsafe_string_to_cstring(face.texturePath));
-            // for vertex in face.vertices {
-            //     if (vertex)
-            // }
-        }
-    }
-}
-
 trenchbroom_unload :: proc(src: TrenchbroomMap) {
     clean_up(src);
+}
+
+trenchbroom_to_model :: proc (src: TrenchbroomMap) -> raylib.Model {
+    meshes : [dynamic]raylib.Mesh;
+    materials : [dynamic]raylib.Material;
+    meshMaterials : [dynamic]i32;
+    for entity in src.entities {
+        if (entity.brushes == nil) {
+            continue;
+        }
+        
+        for brush in entity.brushes {
+            mesh := brush_to_mesh(brush);
+            raylib.UploadMesh(&mesh, false);
+            material := raylib.LoadMaterialDefault();
+            raylib.SetMaterialTexture(&material, raylib.MaterialMapIndex.ALBEDO, brush.faces[0].texture);
+            append(&meshes, mesh);
+            append(&materials, material);
+            append(&meshMaterials, cast(i32)len(materials) - 1);    
+        }
+    }
+    return raylib.Model {
+        transform = raylib.Matrix(1),
+        meshCount = cast(i32)len(meshes),
+        materialCount = cast(i32)len(materials),
+        meshes = raw_data(meshes[:]),
+        materials = raw_data(materials[:]),
+        meshMaterial = raw_data(meshMaterials[:]),
+    };
 }
 
 @(private="package")
@@ -134,9 +175,20 @@ _trenchbroom_parse :: proc(data : string) -> _TrenchbroomMap {
             face : _Face = {
                 plane = plane,
                 texturePath = tokens[15],
-                uvOffset = raylib.Vector2{ cast(f32)strconv.atof(tokens[16]), cast(f32)strconv.atof(tokens[17]) },
-                rotation = cast(f32)strconv.atof(tokens[18]),
-                uvScale = raylib.Vector2{ cast(f32)strconv.atof(tokens[19]), cast(f32)strconv.atof(tokens[20]) },
+                u = raylib.Vector4{ 
+                    cast(f32)strconv.atof(tokens[17]), 
+                    cast(f32)strconv.atof(tokens[19]), 
+                    cast(f32)strconv.atof(tokens[18]), 
+                    cast(f32)strconv.atof(tokens[20]), 
+                },
+                v = raylib.Vector4{ 
+                    cast(f32)strconv.atof(tokens[23]), 
+                    cast(f32)strconv.atof(tokens[25]), 
+                    cast(f32)strconv.atof(tokens[24]), 
+                    cast(f32)strconv.atof(tokens[26]), 
+                },
+                rotation = cast(f32)strconv.atof(tokens[28]),
+                scale = raylib.Vector2{ cast(f32)strconv.atof(tokens[29]), cast(f32)strconv.atof(tokens[30]) },
             }
             if (currentBrush.faces == nil) {
                 currentBrush.faces = make([dynamic]_Face);

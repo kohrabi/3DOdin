@@ -6,9 +6,11 @@ import raylib "vendor:raylib"
 _Face :: struct {
     plane: Plane,
     texturePath: string,
+    texture : raylib.Texture,
+    u: raylib.Vector4,
+    v: raylib.Vector4,
     rotation: f32,
-    uvOffset: raylib.Vector2,
-    uvScale: raylib.Vector2,
+    scale: raylib.Vector2,
     // Polys
     polys: []_Polygon,
 }
@@ -16,9 +18,11 @@ _Face :: struct {
 Face :: struct {
     plane: Plane,
     texturePath: string,
+    texture : raylib.Texture,
+    u: raylib.Vector4,
+    v: raylib.Vector4,
     rotation: f32,
-    uvOffset: raylib.Vector2,
-    uvScale: raylib.Vector2,
+    scale: raylib.Vector2,
     // Polys
     polys: []Polygon,
 }
@@ -27,9 +31,11 @@ face_to_public :: proc(face: _Face) -> Face {
     publicFace := Face{
         plane = face.plane,
         texturePath = face.texturePath,
+        texture = face.texture,
         rotation = face.rotation,
-        uvOffset = face.uvOffset,
-        uvScale = face.uvScale,
+        u = face.u,
+        v = face.v,
+        scale = face.scale,
         polys = make([]Polygon, len(face.polys)),
     };
     for i in 0..<len(face.polys) {

@@ -1,5 +1,6 @@
 package main
 
+import "core:fmt"
 import raylib "vendor:raylib"
 import ecs "libs/ecs"
 import trenchbroom "libs/trenchbroom"
@@ -28,6 +29,7 @@ camera : raylib.Camera3D = raylib.Camera3D {
     projection = raylib.CameraProjection.PERSPECTIVE,
 }
 testMap : trenchbroom.TrenchbroomMap;
+mapModel : raylib.Model;
 
 init :: proc () {
     ecsRegistry = ecs.ecs_create();
@@ -36,6 +38,7 @@ init :: proc () {
     ecs.ecs_component_register(&ecsRegistry, ecs.Transform);
 
     testMap, _ = trenchbroom.trenchbroom_load("content/maps/unnamed.map");
+    mapModel = trenchbroom.trenchbroom_to_model(testMap);
 
     raylib.DisableCursor()
 }
@@ -54,32 +57,9 @@ draw :: proc () {
 
     raylib.BeginMode3D(camera);
 
-        // raylib.DrawCube(cubePosition, 2.0, 2.0, 2.0, raylib.RED);
-        // raylib.DrawCubeWires(cubePosition, 2.0, 2.0, 2.0, raylib.MAROON);
-
-
-        for entity in testMap.entities {
-            if (entity.brushes == nil || len(entity.brushes) == 0) {
-                continue;
-            }
-            i := 0;
-            for brush in entity.brushes {
-                if (brush.faces == nil || len(brush.faces) == 0) {
-                    continue;
-                }
-                for face in brush.faces {
-                    for poly in face.polys {
-                        for vertex in poly.vertices {
-                            test := vertex.position / 100;
-                            raylib.DrawSphere(test, 0.1 * cast(f32)i, raylib.GREEN);
-                            i += 1;
-                        }
-                    }
-                }
-            }
-        }
-
         raylib.DrawGrid(10, 1.0);
+        // raylib.DrawMesh(mapModel.meshes[0], mapModel.materials[0], raylib.Matrix(1));
+        raylib.DrawModel(mapModel, raylib.Vector3(0), 1.0, raylib.WHITE);
 
     raylib.EndMode3D();
 
