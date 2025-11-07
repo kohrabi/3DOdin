@@ -32,6 +32,8 @@ ecs_create :: proc() -> Registry {
 
 ecs_destroy :: proc(ecs: ^Registry) {
     for type_id, component_map in ecs.components {
+        storage := cast(^ComponentStorage(any))component_map;
+        delete(storage.components);
         free(component_map)
     }
     delete(ecs.components)

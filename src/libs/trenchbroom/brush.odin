@@ -1,6 +1,7 @@
 package trenchbroom
 
 import raylib "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 import "core:fmt"
 
 
@@ -79,6 +80,8 @@ brush_to_mesh :: proc (brush: Brush) -> raylib.Mesh {
     triangleCount := 0;
     vertices : [dynamic]f32;
     verticesMap : map[Vertex]u16;
+    defer delete(verticesMap);
+    
     texcoords : [dynamic]f32;
     normal : [dynamic]f32;
     indices : [dynamic]u16;
@@ -86,48 +89,34 @@ brush_to_mesh :: proc (brush: Brush) -> raylib.Mesh {
         for poly in face.polys {
             for vertex in poly.vertices {
                 if (vertex not_in verticesMap) {
+                    verticesMap[vertex] = cast(u16)vertexCount;
+
                     vertexPosition := vertex.position / RAYLIB_UNIT;
-                    verticesMap[vertex] = cast(u16)len(vertices);
                     append(&vertices, vertexPosition.x, vertexPosition.y, vertexPosition.z);
                     append(&normal, poly.plane.normal.x, poly.plane.normal.y, poly.plane.normal.z);
                     append(&texcoords, vertex.uv.x, vertex.uv.y);
+                    
+                    vertexCount += 1;
                 }
             }
 
             for i in 1..<len(poly.vertices) - 1 {
                 triangleCount += 1;
-                append(&indices, verticesMap[poly.vertices[0]], verticesMap[poly.vertices[i + 1]], verticesMap[poly.vertices[i + 2]]);
+                append(&indices, 
+                    verticesMap[poly.vertices[0]], 
+                    verticesMap[poly.vertices[i + 1]],
+                    verticesMap[poly.vertices[i]], 
+                );
             }
-            // for i in 1..< len(poly.vertices) - 1 {
-            //     vertexCount += 3;
-            //     triangleCount += 1;
-
-            //     vertex := poly.vertices[0];
-            //     vert := vertex.position / 100.0;
-            //     append(&vertices, vert.x, vert.y, vert.z);
-            //     append(&normal, poly.plane.normal.x, poly.plane.normal.y, poly.plane.normal.z);
-            //     append(&texcoords, vertex.uv.x, vertex.uv.y);
-                
-            //     vertex = poly.vertices[i];
-            //     vert = vertex.position / 100.0;
-            //     append(&vertices, vert.x, vert.y, vert.z);
-            //     append(&normal, poly.plane.normal.x, poly.plane.normal.y, poly.plane.normal.z);
-            //     append(&texcoords, vertex.uv.x, vertex.uv.y);
-                
-            //     vertex = poly.vertices[i + 1];
-            //     vert = vertex.position / 100.0;
-            //     append(&vertices, vert.x, vert.y, vert.z);
-            //     append(&normal, poly.plane.normal.x, poly.plane.normal.y, poly.plane.normal.z);
-            //     append(&texcoords, vertex.uv.x, vertex.uv.y);
-
-            // }
         }
     }
+
     return raylib.Mesh{
-        vertexCount = cast(i32)len(vertices),
+        vertexCount = cast(i32)vertexCount,
         triangleCount =  cast(i32)triangleCount,
         vertices = raw_data(vertices[:]),
-        texcoords = raw_data(texcoords[:])
+        texcoords = raw_data(texcoords[:]),
+        indices = raw_data(indices[:])
     };
 }
 

@@ -13,12 +13,12 @@ PolyClassification :: enum {
 @(private = "package")
 _Polygon :: struct {
     vertices: [dynamic]Vertex,
-    plane: Plane,
+    plane: ^Plane,
 }
 
 Polygon :: struct {
     vertices: []Vertex,
-    plane: Plane,
+    plane: ^Plane,
 }
 
 poly_to_public :: proc(poly: _Polygon) -> Polygon {
@@ -152,27 +152,6 @@ polygon_sort_cw :: proc(polygon : ^_Polygon) {
     }
     center = center / cast(f32)len(vertices);
 
-    // context.user_ptr = &center;
-
-    // fmt.println("Before sort: ", polygon);
-    // sort.quick_sort_proc(vertices[:], proc(a: Vertex, b: Vertex) -> int {
-
-    //     center := (cast(^raylib.Vector3)context.user_ptr)^;
-
-    //     va := a.position - center;
-    //     vb := b.position - center;
-    //     zCross := va.x * vb.y - va.y * vb.x;
-    //     if (zCross > 0.0) {
-    //         return -1;
-    //     } else if (zCross < 0.0) {
-    //         return 1;
-    //     }
-    //     distA := raylib.Vector3LengthSqr(va);
-    //     distB := raylib.Vector3LengthSqr(vb);
-
-    //     return distA < distB ? -1 : (distA > distB ? 1 : 0);
-    // });
-    // fmt.println("After sort: ", polygon);
     for i in 0..<len(vertices) - 2 {
         vertex := vertices[i];
         smallestAngle : f32 = -1.0;
@@ -239,7 +218,6 @@ calculate_plane :: proc(polygon: ^_Polygon) -> (bool) {
     }
 
     if (abs(plane.normal.x) < raylib.EPSILON && abs(plane.normal.y) < raylib.EPSILON && abs(plane.normal.z) < raylib.EPSILON) {
-        // Degenerate polygon, use first three vertices to define the plane
         return false;
     }
 

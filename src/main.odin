@@ -3,6 +3,7 @@ package main
 import "core:fmt"
 import raylib "vendor:raylib"
 import ecs "libs/ecs"
+import rlgl "vendor:raylib/rlgl"
 import trenchbroom "libs/trenchbroom"
 
 ecsRegistry : ecs.Registry;
@@ -58,8 +59,8 @@ draw :: proc () {
     raylib.BeginMode3D(camera);
 
         raylib.DrawGrid(10, 1.0);
-        // raylib.DrawMesh(mapModel.meshes[0], mapModel.materials[0], raylib.Matrix(1));
         raylib.DrawModel(mapModel, raylib.Vector3(0), 1.0, raylib.WHITE);
+        
 
     raylib.EndMode3D();
 
